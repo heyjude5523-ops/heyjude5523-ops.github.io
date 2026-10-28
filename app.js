@@ -14,10 +14,18 @@
     else if (d >= yday && el.classList.contains("slide")) el.insertAdjacentHTML("beforeend", '<span class="new">NEW</span>');
   });
 
+  // 이번 주 새로 = 공개 7일 안 편. 너무 적으면 최신 3편은 남긴다.
+  var wk = new Date(now - 6 * 864e5).toISOString().slice(0, 10);
+  $$(".reel.recent").forEach(function (r) {
+    $$(".slide:not(.hide)", r).forEach(function (s, i) {
+      if (i >= 3 && (!s.dataset.open || s.dataset.open < wk)) s.classList.add("hide");
+    });
+  });
+
   // 보이는 편이 하나도 없으면 첫 편 날짜를 알려 준다
-  $$(".reel,.strip").forEach(function (r) {
+  $$(".reel,.strip,.grid").forEach(function (r) {
     var ks = $$("[data-open]", r);
-    if (!ks.length || $$("[data-open]:not(.hide)", r).length) return;
+    if (!ks.length || $$("[data-open]:not(.hide)", r).length || (r.classList.contains("grid") && $(".reel .soon"))) return;
     var d = ks.map(function (k) { return k.dataset.open; }).sort()[0].split("-");
     var msg = "첫 편은 " + (+d[1]) + "월 " + (+d[2]) + "일에 올라옵니다";
     if (r.classList.contains("strip")) r.innerHTML = '<span class="soon">' + msg + "</span>";
