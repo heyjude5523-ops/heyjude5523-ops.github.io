@@ -2,6 +2,8 @@
 (function () {
   var qs = new URLSearchParams(location.search);
   var all = qs.has("all"); // 미리보기: ?all=1 이면 예정 편도 보임
+  var deep = parseInt(qs.get("n"), 10); // 프로필 링크 /salim/?n=12 → 12번 편 창을 바로 연다
+  if (deep) history.replaceState(null, "", location.pathname + (all ? "?all=1" : "") + "#n" + String(deep).padStart(2, "0"));
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
 
@@ -22,6 +24,11 @@
     });
   });
 
+  // 편 창 아래 다른 편: 아직 안 올린 편은 빼고 앞의 3개만
+  $$(".also").forEach(function (n) {
+    $$(".al:not(.hide)", n).forEach(function (a, i) { if (i >= 3) a.classList.add("hide"); });
+  });
+
   // 보이는 편이 하나도 없으면 첫 편 날짜를 알려 준다
   $$(".reel,.strip,.grid").forEach(function (r) {
     var ks = $$("[data-open]", r);
@@ -31,6 +38,27 @@
     if (r.classList.contains("strip")) r.innerHTML = '<span class="soon">' + msg + "</span>";
     else r.insertAdjacentHTML("beforeend", '<p class="soon">' + msg + "</p>");
   });
+
+  // 첫 화면: 지금 보이는 최신 편(쿠팡 링크 있는 편)의 버튼을 위에 꺼내 둔다 → 들어오자마자 한 번에 쿠팡
+  var hero = $("#hero"), bar = $("#bar");
+  var top = $$(".ep:not(.hide)").filter(function (ep) { return $(".buy[href]", ep); })[0];
+  if (hero && top) {
+    var id = top.id, nn = id.slice(1);
+    hero.innerHTML = '<span class="badge">' + nn + '번 · 방금 올라온 영상</span>' + $("h2", top).outerHTML +
+      $(".buys", top).outerHTML + '<a class="more-l" href="#' + id + '" data-ev="open/' + slug() + "/" + nn + '/top">영상·한 장 표 보기 ›</a>';
+    $$(".buy[data-ev]", hero).forEach(function (b) { b.dataset.ev += "/top"; }); // 첫 화면 버튼 클릭은 /top 으로 따로 센다
+    hero.hidden = false;
+    if (bar) {
+      bar.href = "#" + id; bar.dataset.ev = "bar/" + slug() + "/" + nn;
+      bar.textContent = "🛒 " + nn + "번 쿠팡 링크 바로 보기";
+      bar.hidden = false;
+      // 첫 화면 버튼이 보이는 동안은 숨기고, 내려가면 나타난다
+      if ("IntersectionObserver" in window) {
+        new IntersectionObserver(function (es) { bar.classList.toggle("away", es[0].isIntersecting); }).observe(hero);
+      }
+    }
+  }
+  function slug() { return location.pathname.split("/").filter(Boolean).pop() || "hub"; }
 
   // 클릭 세기. GC_CODE 가 비면 이 기기 안(localStorage)에서만 센다 — 미리보기 확인용.
   function count(ev, title) {
@@ -50,8 +78,13 @@
     try { d.textContent = JSON.stringify(JSON.parse(localStorage.getItem("clicks") || "{}"), null, 1); } catch (e) {}
   }
   if (qs.has("debug")) showDebug();
+  if (deep) count("deep/" + slug() + "/" + String(deep).padStart(2, "0")); // 프로필 링크로 바로 들어온 수
 
   // 영상: 보일 때만 받아서 재생(데이터 아끼기)
+  var ready = false, seen = [];
+  window.addEventListener("load", function () {
+    setTimeout(function () { ready = true; seen.forEach(play); }, 1500);
+  });
   function play(v) {
     if (!v) return;
     if (!v.src && v.dataset.src) v.src = v.dataset.src;
@@ -60,7 +93,11 @@
   function stop(v) { if (v && v.src) v.pause(); }
   if ("IntersectionObserver" in window) {
     var io = new IntersectionObserver(function (es) {
-      es.forEach(function (e) { var v = $("video", e.target); e.isIntersecting ? play(v) : stop(v); });
+      es.forEach(function (e) {
+        var v = $("video", e.target);
+        if (e.isIntersecting) { if (ready) play(v); else seen.push(v); }
+        else { stop(v); seen = seen.filter(function (x) { return x !== v; }); }
+      });
     }, { threshold: 0.6 });
     $$(".slide").forEach(function (s) { io.observe(s); });
     var ro = new IntersectionObserver(function (es) {
@@ -127,7 +164,7 @@
       var f = q.form; f.classList.remove("shake"); void f.offsetWidth; f.classList.add("shake");
       return;
     }
-    count("find/" + location.pathname.split("/").filter(Boolean).pop() + "/" + id.slice(1));
+    count("find/" + slug() + "/" + id.slice(1));
     q.blur(); q.value = "";
     openEp(id);
   }
