@@ -46,7 +46,8 @@
     if (!ks.length || $$("[data-open]:not(.hide)", r).length || (r.classList.contains("grid") && $(".reel .soon"))) return;
     var d = ks.map(function (k) { return k.dataset.open; }).sort()[0].split("-");
     var msg = "첫 편은 " + (+d[1]) + "월 " + (+d[2]) + "일에 올라옵니다";
-    if (r.classList.contains("strip")) r.innerHTML = '<span class="soon">' + msg + "</span>";
+    // 허브: 아직 안 열린 채널은 큰 카드 대신 아래쪽 한 줄로 (날짜는 이름 밑 작은 글씨)
+    if (r.classList.contains("strip")) { var ch = r.closest(".ch"); ch.classList.add("wait"); $("small", ch).textContent = msg; ch.parentNode.appendChild(ch); return; }
     else r.insertAdjacentHTML("beforeend", '<p class="soon">' + msg + "</p>");
   });
 
@@ -55,7 +56,7 @@
   var top = $$(".ep:not(.hide)").filter(function (ep) { return $(".buy[href]", ep); })[0];
   if (hero && top) {
     var id = top.id, nn = id.slice(1);
-    hero.innerHTML = '<span class="badge">' + nn + '번 · 방금 올라온 영상</span>' + $("h2", top).outerHTML +
+    hero.innerHTML = '<span class="badge">' + nn + '번 · 최신 영상</span>' + $("h2", top).outerHTML +
       $(".buys", top).outerHTML + '<a class="more-l" href="#' + id + '" data-ev="open/' + slug() + "/" + nn + '/top">영상·한 장 표 보기 ›</a>';
     $$(".buy[data-ev]", hero).forEach(function (b) { b.dataset.ev += "/top"; }); // 첫 화면 버튼 클릭은 /top 으로 따로 센다
     hero.hidden = false;
