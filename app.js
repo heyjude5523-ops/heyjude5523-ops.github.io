@@ -10,7 +10,7 @@
     if (utm.utm_source || utm.utm_campaign) localStorage.setItem("utm", JSON.stringify({ t: Date.now(), u: utm }));
     else { var su = JSON.parse(localStorage.getItem("utm") || "null"); if (su && Date.now() - su.t < 90 * 864e5) utm = su.u; }
   } catch (e) {}
-  var camp = /^[a-z0-9_]{1,40}$/.test(utm.utm_campaign || "") ? utm.utm_campaign : "";
+  var camp = /^[a-z0-9_.]{1,40}$/.test(utm.utm_campaign || "") ? utm.utm_campaign : "";
   if (deep) { // n 만 빼고 utm 등 나머지는 주소에 남긴다
     var rest = new URLSearchParams(location.search); rest.delete("n");
     history.replaceState(null, "", location.pathname + (rest.toString() ? "?" + rest : "") + "#n" + String(deep).padStart(2, "0"));
