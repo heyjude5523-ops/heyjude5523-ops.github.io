@@ -1,11 +1,16 @@
-// 번호 찾기 · 아직 안 올린 편 숨기기 · 편 창 열기 · 영상 자동 재생 · 클릭 세기(GoatCounter, 쿠키·개인정보 없음)
+// 번호 찾기 · 아직 안 올린 편 숨기기 · 편 창 열기 · 영상 자동 재생 · 방문·클릭 세기(Supabase site_hits, 쿠키·개인정보 없음)
 (function () {
   var qs = new URLSearchParams(location.search);
   var all = qs.has("all"); // 미리보기: ?all=1 이면 예정 편도 보임
   var deep = parseInt(qs.get("n"), 10); // 프로필 링크 /salim/?n=12 → 12번 편 창을 바로 연다
-  // 들어온 utm_campaign(어느 계정)을 기억해 두고 클릭 기록 끝에 /c=계정 으로 붙인다 — 허브→칸으로 옮겨도 이어진다
-  var camp = /^[a-z0-9_]{1,40}$/.test(qs.get("utm_campaign") || "") ? qs.get("utm_campaign") : "";
-  try { if (camp) sessionStorage.setItem("camp", camp); else camp = sessionStorage.getItem("camp") || ""; } catch (e) {}
+  // 들어온 utm 은 90일 동안 들고 다닌다(이 기기 안). 클릭 기록 끝에 /c=계정 으로도 붙인다 — 허브→칸으로 옮겨도 이어진다
+  var UK = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"], utm = {};
+  UK.forEach(function (k) { var v = qs.get(k); if (v) utm[k] = v.slice(0, 100); });
+  try {
+    if (utm.utm_source || utm.utm_campaign) localStorage.setItem("utm", JSON.stringify({ t: Date.now(), u: utm }));
+    else { var su = JSON.parse(localStorage.getItem("utm") || "null"); if (su && Date.now() - su.t < 90 * 864e5) utm = su.u; }
+  } catch (e) {}
+  var camp = /^[a-z0-9_]{1,40}$/.test(utm.utm_campaign || "") ? utm.utm_campaign : "";
   if (deep) { // n 만 빼고 utm 등 나머지는 주소에 남긴다
     var rest = new URLSearchParams(location.search); rest.delete("n");
     history.replaceState(null, "", location.pathname + (rest.toString() ? "?" + rest : "") + "#n" + String(deep).padStart(2, "0"));
@@ -66,18 +71,32 @@
   }
   function slug() { return location.pathname.split("/").filter(Boolean).pop() || "hub"; }
 
-  // 클릭 세기. GC_CODE 가 비면 이 기기 안(localStorage)에서만 센다 — 미리보기 확인용.
-  function count(ev, title) {
+  // 방문(view)·쿠팡 클릭(click)을 Supabase 표 site_hits 에 한 줄씩 넣는다. IP·쿠키 없음, vid = 이 브라우저의 무작위 번호.
+  // 로봇(webdriver)·로컬 미리보기·HIT 설정 없음 → 보내지 않는다.
+  var H = window.HIT, live = !!H && !navigator.webdriver && /^https:$/.test(location.protocol) &&
+    !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+  var vid = "";
+  try { vid = localStorage.getItem("vid") || ""; if (!vid) { vid = Math.random().toString(36).slice(2, 12) + Date.now().toString(36); localStorage.setItem("vid", vid); } } catch (e) {}
+  function hit(event, item) {
+    if (!live) return;
+    var row = { event: event, site: location.hostname, path: location.pathname.slice(0, 300), item: item || null,
+      ref: document.referrer ? document.referrer.split("/").slice(0, 3).join("/").slice(0, 300) : null, vid: vid || null };
+    UK.forEach(function (k) { row[k] = utm[k] || null; });
+    var h = { "apikey": H.key, "Content-Type": "application/json", "Prefer": "return=minimal" };
+    if (!/^sb_/.test(H.key)) h.Authorization = "Bearer " + H.key; // 옛 anon 키(JWT)일 때만
+    try { fetch(H.url + "/rest/v1/site_hits", { method: "POST", headers: h, body: JSON.stringify(row), keepalive: true }).catch(function () {}); } catch (e) {}
+  }
+  hit("view");
+
+  // 이 기기 안 클릭 기록 — ?debug 미리보기 확인용
+  function count(ev) {
     if (camp) ev += "/c=" + camp;
-    if (window.GC_CODE && window.goatcounter && window.goatcounter.count) {
-      window.goatcounter.count({ path: ev, title: title || ev, event: true });
-    } else {
-      try {
-        var t = JSON.parse(localStorage.getItem("clicks") || "{}");
-        t[ev] = (t[ev] || 0) + 1;
-        localStorage.setItem("clicks", JSON.stringify(t));
-      } catch (e) {}
-    }
+    try {
+      var t = JSON.parse(localStorage.getItem("clicks") || "{}");
+      t[ev] = (t[ev] || 0) + 1;
+      localStorage.setItem("clicks", JSON.stringify(t));
+    } catch (e) {}
+    if (/^click\//.test(ev)) hit("click", ev.split("/c=")[0].split("/").slice(2).join("/").slice(0, 40)); // 예: 05/2 · 05/2/top
     if (qs.has("debug")) showDebug();
   }
   function showDebug() {
@@ -145,7 +164,7 @@
     var a = e.target.closest("a");
     if (!a) return;
     if (a.hasAttribute("data-close")) { e.preventDefault(); close(); return; }
-    if (a.dataset.ev) count(a.dataset.ev, a.dataset.title);
+    if (a.dataset.ev) count(a.dataset.ev);
     var h = a.getAttribute("href") || "";
     if (/^#n\d\d$/.test(h)) { e.preventDefault(); openEp(h.slice(1), !!cur); return; } // 창 안 이전·다음은 기록 안 쌓음
     // 바깥(쿠팡)으로 나가는 링크는 신호가 나갈 틈을 잠깐 준다
