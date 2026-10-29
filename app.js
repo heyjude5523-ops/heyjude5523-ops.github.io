@@ -3,7 +3,13 @@
   var qs = new URLSearchParams(location.search);
   var all = qs.has("all"); // 미리보기: ?all=1 이면 예정 편도 보임
   var deep = parseInt(qs.get("n"), 10); // 프로필 링크 /salim/?n=12 → 12번 편 창을 바로 연다
-  if (deep) history.replaceState(null, "", location.pathname + (all ? "?all=1" : "") + "#n" + String(deep).padStart(2, "0"));
+  // 들어온 utm_campaign(어느 계정)을 기억해 두고 클릭 기록 끝에 /c=계정 으로 붙인다 — 허브→칸으로 옮겨도 이어진다
+  var camp = /^[a-z0-9_]{1,40}$/.test(qs.get("utm_campaign") || "") ? qs.get("utm_campaign") : "";
+  try { if (camp) sessionStorage.setItem("camp", camp); else camp = sessionStorage.getItem("camp") || ""; } catch (e) {}
+  if (deep) { // n 만 빼고 utm 등 나머지는 주소에 남긴다
+    var rest = new URLSearchParams(location.search); rest.delete("n");
+    history.replaceState(null, "", location.pathname + (rest.toString() ? "?" + rest : "") + "#n" + String(deep).padStart(2, "0"));
+  }
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
 
@@ -50,7 +56,7 @@
     hero.hidden = false;
     if (bar) {
       bar.href = "#" + id; bar.dataset.ev = "bar/" + slug() + "/" + nn;
-      bar.textContent = "🛒 " + nn + "번 쿠팡 링크 바로 보기";
+      bar.textContent = nn + "번 쿠팡 링크 바로 보기 ›";
       bar.hidden = false;
       // 첫 화면 버튼이 보이는 동안은 숨기고, 내려가면 나타난다
       if ("IntersectionObserver" in window) {
@@ -62,6 +68,7 @@
 
   // 클릭 세기. GC_CODE 가 비면 이 기기 안(localStorage)에서만 센다 — 미리보기 확인용.
   function count(ev, title) {
+    if (camp) ev += "/c=" + camp;
     if (window.GC_CODE && window.goatcounter && window.goatcounter.count) {
       window.goatcounter.count({ path: ev, title: title || ev, event: true });
     } else {
