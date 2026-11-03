@@ -1,4 +1,4 @@
-// 번호 찾기 · 아직 안 올린 편 숨기기 · 편 창 열기 · 영상 자동 재생 · 방문·클릭 세기(Supabase site_hits, 쿠키·개인정보 없음)
+// 번호 찾기 · 아직 안 올린 편 숨기기 · 편 창 열기 · 방문·클릭 세기(Supabase site_hits, 쿠키·개인정보 없음)
 (function () {
   var qs = new URLSearchParams(location.search);
   var all = qs.has("all"); // 미리보기: ?all=1 이면 예정 편도 보임
@@ -24,26 +24,18 @@
   $$("[data-open]").forEach(function (el) {
     var d = el.dataset.open;
     if (!all && d > today) el.classList.add("hide");
-    else if (d >= yday && el.classList.contains("slide")) el.insertAdjacentHTML("beforeend", '<span class="new">NEW</span>');
-  });
-
-  // 이번 주 새로 = 공개 7일 안 편. 너무 적으면 최신 3편은 남긴다.
-  var wk = new Date(now - 6 * 864e5).toISOString().slice(0, 10);
-  $$(".reel.recent").forEach(function (r) {
-    $$(".slide:not(.hide)", r).forEach(function (s, i) {
-      if (i >= 3 && (!s.dataset.open || s.dataset.open < wk)) s.classList.add("hide");
-    });
+    else if (d >= yday && el.classList.contains("li") && !el.closest(".also")) $(".t", el).insertAdjacentHTML("afterbegin", '<em class="new">NEW</em>');
   });
 
   // 편 창 아래 다른 편: 아직 안 올린 편은 빼고 앞의 3개만
   $$(".also").forEach(function (n) {
-    $$(".al:not(.hide)", n).forEach(function (a, i) { if (i >= 3) a.classList.add("hide"); });
+    $$(".li:not(.hide)", n).forEach(function (a, i) { if (i >= 3) a.classList.add("hide"); });
   });
 
   // 보이는 편이 하나도 없으면 첫 편 날짜를 알려 준다
-  $$(".reel,.strip,.grid").forEach(function (r) {
+  $$(".strip,.list").forEach(function (r) {
     var ks = $$("[data-open]", r);
-    if (!ks.length || $$("[data-open]:not(.hide)", r).length || (r.classList.contains("grid") && $(".reel .soon"))) return;
+    if (!ks.length || $$("[data-open]:not(.hide)", r).length) return;
     var d = ks.map(function (k) { return k.dataset.open; }).sort()[0].split("-");
     var msg = "첫 편은 " + (+d[1]) + "월 " + (+d[2]) + "일에 올라옵니다";
     // 허브: 아직 안 열린 채널은 큰 카드 대신 아래쪽 한 줄로 (날짜는 이름 밑 작은 글씨)
@@ -52,23 +44,14 @@
   });
 
   // 첫 화면: 지금 보이는 최신 편(쿠팡 링크 있는 편)의 버튼을 위에 꺼내 둔다 → 들어오자마자 한 번에 쿠팡
-  var hero = $("#hero"), bar = $("#bar");
+  var hero = $("#hero");
   var top = $$(".ep:not(.hide)").filter(function (ep) { return $(".buy[href]", ep); })[0];
   if (hero && top) {
     var id = top.id, nn = id.slice(1);
-    hero.innerHTML = '<span class="badge">' + nn + '번 · 최신 영상</span>' + $("h2", top).outerHTML +
-      $(".buys", top).outerHTML + '<a class="more-l" href="#' + id + '" data-ev="open/' + slug() + "/" + nn + '/top">영상·한 장 표 보기 ›</a>';
+    hero.innerHTML = '<span class="badge">' + (+nn) + '번 · 최신 영상</span>' + $("h2", top).outerHTML + '<p class="say">누르면 쿠팡 검색 결과로 가요.</p>' +
+      $(".buys", top).outerHTML + '<a class="more-l" href="#' + id + '" data-ev="open/' + slug() + "/" + nn + '/top">영상에 나온 비교표 보기 ›</a>';
     $$(".buy[data-ev]", hero).forEach(function (b) { b.dataset.ev += "/top"; }); // 첫 화면 버튼 클릭은 /top 으로 따로 센다
     hero.hidden = false;
-    if (bar) {
-      bar.href = "#" + id; bar.dataset.ev = "bar/" + slug() + "/" + nn;
-      bar.textContent = nn + "번 쿠팡 링크 바로 보기 ›";
-      bar.hidden = false;
-      // 첫 화면 버튼이 보이는 동안은 숨기고, 내려가면 나타난다
-      if ("IntersectionObserver" in window) {
-        new IntersectionObserver(function (es) { bar.classList.toggle("away", es[0].isIntersecting); }).observe(hero);
-      }
-    }
   }
   function slug() { return location.pathname.split("/").filter(Boolean).pop() || "hub"; }
 
@@ -107,44 +90,15 @@
   if (qs.has("debug")) showDebug();
   if (deep) count("deep/" + slug() + "/" + String(deep).padStart(2, "0")); // 프로필 링크로 바로 들어온 수
 
-  // 영상: 보일 때만 받아서 재생(데이터 아끼기)
-  var ready = false, seen = [];
-  window.addEventListener("load", function () {
-    setTimeout(function () { ready = true; seen.forEach(play); }, 1500);
-  });
-  function play(v) {
-    if (!v) return;
-    if (!v.src && v.dataset.src) v.src = v.dataset.src;
-    var p = v.play(); if (p && p.catch) p.catch(function () {});
-  }
-  function stop(v) { if (v && v.src) v.pause(); }
-  if ("IntersectionObserver" in window) {
-    var io = new IntersectionObserver(function (es) {
-      es.forEach(function (e) {
-        var v = $("video", e.target);
-        if (e.isIntersecting) { if (ready) play(v); else seen.push(v); }
-        else { stop(v); seen = seen.filter(function (x) { return x !== v; }); }
-      });
-    }, { threshold: 0.6 });
-    $$(".slide").forEach(function (s) { io.observe(s); });
-    var ro = new IntersectionObserver(function (es) {
-      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); ro.unobserve(e.target); } });
-    }, { threshold: 0.1 });
-    $$(".tile,.ch").forEach(function (t, i) { t.classList.add("rise"); t.style.transitionDelay = (i % 3) * 60 + "ms"; ro.observe(t); });
-    // 탭이 뒤에서 열리면 감시가 늦게 올 수 있다 → 1.2초 뒤 화면 안에 있는 것은 그냥 보이게
-    setTimeout(function () { $$(".rise:not(.in)").forEach(function (t) { if (t.getBoundingClientRect().top < innerHeight) t.classList.add("in"); }); }, 1200);
-  }
-
   // 편 창: #n03 이면 아래에서 올라오는 창을 연다. 뒤로 가기 = 닫기.
   var cur = null, pushed = false;
   function sync() {
     var el = /^#n\d\d$/.test(location.hash) ? $(location.hash) : null;
     if (el && el.classList.contains("hide")) el = null;
-    if (cur && cur !== el) { cur.classList.remove("open"); stop($("video", cur)); }
+    if (cur && cur !== el) cur.classList.remove("open");
     cur = el;
     document.body.classList.toggle("lock", !!el);
-    $$(".slide video").forEach(function (v) { el ? stop(v) : 0; });
-    if (el) { el.classList.add("open"); el.scrollTop = 0; play($("video", el)); }
+    if (el) { el.classList.add("open"); el.scrollTop = 0; }
   }
   function openEp(id, replace) {
     history[replace ? "replaceState" : "pushState"](null, "", "#" + id);
@@ -187,7 +141,7 @@
     if (!n) return;
     var id = "n" + String(n).padStart(2, "0"), el = document.getElementById(id);
     if (!el || el.classList.contains("hide")) {
-      q.value = ""; q.placeholder = n + "번은 아직 없어요";
+      q.value = ""; q.placeholder = n + (el ? "번은 아직 안 나왔어요" : "번은 없는 번호예요");  // 날짜 전 편 vs 없는 번호
       var f = q.form; f.classList.remove("shake"); void f.offsetWidth; f.classList.add("shake");
       return;
     }
