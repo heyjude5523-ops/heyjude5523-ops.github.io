@@ -43,13 +43,20 @@
     else r.insertAdjacentHTML("beforeend", '<p class="soon">' + msg + "</p>");
   });
 
-  // 첫 화면: 지금 보이는 최신 편(쿠팡 링크 있는 편)의 버튼을 위에 꺼내 둔다 → 들어오자마자 한 번에 쿠팡
-  var hero = $("#hero");
-  var top = $$(".ep:not(.hide)").filter(function (ep) { return $(".buy[href]", ep); })[0];
+  // 첫 화면: 지금 보이는 최신 편(쿠팡 링크 있는 편)의 표지·제목·버튼을 위에 꺼내 둔다 → 들어오자마자 「그 영상」을 알아보고 한 번에 쿠팡
+  // 링크가 한 편도 없는 채널(11-04 반려·차박·홈트)은 막다른 화면 대신 최신 편 표지와 비교표로 이어 준다
+  var hero = $("#hero"), vis = $$(".ep:not(.hide)");
+  var top = vis.filter(function (ep) { return $(".buy[href]", ep); })[0], wait = !top;
+  // 11-04 링크 없는 채널: 글 페이지가 있는 최신 편 → 없으면 표 있는 편(「비교표 보기」 약속이 빈말이 안 되게)
+  if (wait) top = vis.filter(function (ep) { return $(".more-l", ep); })[0] || vis.filter(function (ep) { return $(".sheet-t", ep); })[0] || vis[0];
   if (hero && top) {
-    var id = top.id, nn = id.slice(1);
-    hero.innerHTML = '<span class="badge">' + (+nn) + '번 · 최신 영상</span>' + $("h2", top).outerHTML + '<p class="say">누르면 쿠팡 검색 결과로 가요.</p>' +
-      $(".buys", top).outerHTML + '<a class="more-l" href="#' + id + '" data-ev="open/' + slug() + "/" + nn + '/top">영상에 나온 비교표 보기 ›</a>';
+    var id = top.id, nn = id.slice(1), cov = $(".cov", top), read = $(".more-l", top);
+    hero.innerHTML = '<div class="head">' + (cov ? cov.outerHTML : "") + '<div><span class="badge">' + (+nn) + (top === vis[0] ? "번 · 최신 영상" : "번") + '</span>' + $("h2", top).outerHTML + "</div></div>" +
+      (wait ? '<p class="dead">' + (read ? '쿠팡 링크는 아직 준비 중이에요. 대신 영상에 나온 비교는 지금 바로 읽을 수 있어요.'
+                                        : $(".sheet-t", top) ? '쿠팡 링크는 아직 준비 중이에요. 대신 영상 속 비교표는 지금 바로 볼 수 있어요.' : '쿠팡 링크는 아직 준비 중이에요.') + '</p>'
+            : '<p class="say">누르면 쿠팡 검색 결과로 가요.</p>' + $(".buys", top).outerHTML) +
+      (read ? '<a class="more-l" href="' + read.getAttribute("href") + '" data-ev="read/' + slug() + "/" + nn + '/top">비교를 글로 읽기 ›</a>'
+       : $(".sheet-t", top) ? '<a class="more-l" href="#' + id + '" data-ev="open/' + slug() + "/" + nn + '/top">영상에 나온 비교표 보기 ›</a>' : "");
     $$(".buy[data-ev]", hero).forEach(function (b) { b.dataset.ev += "/top"; }); // 첫 화면 버튼 클릭은 /top 으로 따로 센다
     hero.hidden = false;
   }

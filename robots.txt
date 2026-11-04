@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://pick.narubi.co.kr/sitemap.xml

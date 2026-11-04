@@ -108,3 +108,48 @@ footer{margin-top:16px;color:var(--mute);font-size:14px;line-height:1.55}
 .strip:has(.soon){height:auto}.strip .soon{padding:14px 0 4px}
 #dbg{position:fixed;right:8px;bottom:8px;max-width:70vw;max-height:40vh;overflow:auto;background:#000c;color:#0f0;font:11px/1.4 monospace;padding:8px;border-radius:8px;z-index:30}
 @media (prefers-reduced-motion:reduce){*,*::after{animation:none!important;transition:none!important}}
+/* 11-04 표지 썸네일 — 인스타 릴스와 같은 표지라 「아 그 영상」을 바로 알아보게 */
+.head{display:flex;gap:12px;align-items:center}
+.head .cov{flex:none;width:64px;height:auto;aspect-ratio:9/16;object-fit:cover;border-radius:12px;border:1.5px solid var(--line)}
+.head h2{margin:6px 0 0}
+.hero .head{margin-bottom:12px}
+.hero .head .cov{width:72px}
+.hero .dead{margin-top:0}
+.again{margin-top:18px}
+.again .sub{margin:0}
+
+/* 11-04 「고르는 법」 글 페이지 */
+.more-l{display:block;margin-top:14px;text-align:center;font-weight:700;font-size:15px;color:var(--ink);text-decoration:none;padding:10px;border:1.5px solid var(--line);border-radius:16px;background:var(--card)}
+.g-in{display:flex;align-items:center;gap:10px;margin:14px 0 0;padding:14px 16px;border-radius:20px;background:var(--card);border:1.5px solid var(--line);text-decoration:none;color:var(--ink)}
+.g-in b{font:400 18px var(--round)}
+.g-in small{flex:1;color:var(--mute);font-size:14px}
+.g-in i,.g-row i{font-style:normal;font-size:22px;color:var(--mute)}
+.crumb{padding:12px 0 0;font-size:14.5px;color:var(--mute)}
+.crumb a{color:var(--ink);font-weight:700;text-decoration:none}
+.g .head{margin:14px 0 8px}
+.g h1{font-size:22px;line-height:1.35;margin:6px 0 0}
+.g-meta{margin:0 0 14px;color:var(--mute);font-size:14px}
+.g-s{margin-top:22px;padding-top:4px;border-top:1.5px dashed var(--line)}
+.g-s h3{margin:14px 0 6px;font-size:20px;line-height:1.35}
+.g-sub{margin:0 0 8px;color:var(--mute);font-size:15px}
+.g-note{margin:8px 0;padding:10px 14px;border-radius:14px;background:var(--soft);font-size:16px}
+.g-note small{color:var(--mute)}
+.g-cards{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:10px;counter-reset:g}
+.g-cards>li{padding:12px 14px;border-radius:16px;background:var(--card);border:1.5px solid var(--line)}
+.g-cards>li>b{font:400 18px var(--round)}
+.g-cards>li>small{margin-left:6px;color:var(--mute);font-size:14px}
+.g-cards ul{margin:6px 0 0;padding-left:2px;list-style:none;font-size:15.5px;line-height:1.55}
+.g-pre{margin:8px 0;padding-left:20px}
+.g-tw{overflow-x:auto;margin:10px 0}
+.g-t{border-collapse:collapse;font-size:14.5px;line-height:1.4;min-width:100%}
+.g-t th,.g-t td{border:1px solid var(--line);padding:8px;text-align:left;vertical-align:top;background:var(--card)}
+.g-t thead th{background:var(--soft)}
+.g-src{margin:10px 0 0;color:var(--mute);font-size:13.5px}
+.g-list{display:grid;gap:10px;margin-top:12px}
+.g-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:18px;background:var(--card);border:1.5px solid var(--line);text-decoration:none;color:var(--ink)}
+.g-row .no{flex:none;min-width:28px;font:400 22px var(--round);color:var(--tint);text-align:center}
+.g-row .t{flex:1;min-width:0}
+.g-row b{display:block;font-weight:700;font-size:16px;line-height:1.4}
+.g-row small{display:block;color:var(--mute);font-size:14px;margin-top:2px}
+.g .ad-near{margin:0 0 10px}
+.ch .nw{white-space:nowrap}
